@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">CodingTest</string>
+    <string name="menu_places_map">Places on map</string>
+    <string name="menu_places_list">List of places</string>
 </resources>
