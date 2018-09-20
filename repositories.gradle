@@ -1,0 +1,5 @@
+static def addRepos(RepositoryHandler handler) {
+    handler.google()
+    handler.jcenter()
+}
+ext.addRepos = this.&addRepos

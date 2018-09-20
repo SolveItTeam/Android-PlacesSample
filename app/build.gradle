@@ -1,0 +1,78 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+apply from: '../credentials.gradle'
+
+android {
+    compileSdkVersion rootProject.target_sdk
+    defaultConfig {
+        applicationId rootProject.application_id
+        minSdkVersion rootProject.min_sdk
+        targetSdkVersion rootProject.target_sdk
+        versionCode rootProject.version_code
+        versionName rootProject.version_name
+    }
+    buildTypes {
+        debug {
+            def googleApiProperties = file("../credentials/debug_google_api.properties")
+            manifestPlaceholders += ["GOOGLE_API_KEY": getCredential(googleApiProperties, "api_key")]
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    signingConfigs {
+        debug {
+            def keystoreProperties = file("../credentials/debug_keystore.properties")
+            storeFile file("../credentials/debug.keystore")
+            storePassword getCredential(keystoreProperties, "store_password")
+            keyAlias getCredential(keystoreProperties, "key_alias")
+            keyPassword getCredential(keystoreProperties, "key_password")
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation deps.support.app_compat
+    implementation deps.support.recyclerview
+    implementation deps.support.constraint_layout
+
+    implementation deps.lifecycle.extensions
+    implementation deps.lifecycle.java8
+    implementation deps.lifecycle.reactivestreams
+    kapt deps.lifecycle.compiler
+
+    implementation deps.room.runtime
+    implementation deps.room.rxjava2
+    kapt deps.room.compiler
+
+    implementation deps.retrofit.runtime
+    implementation deps.retrofit.gson
+
+    implementation deps.okhttp.logging_interceptor
+
+    implementation deps.dagger.runtime
+    implementation deps.dagger.android
+    implementation deps.dagger.android_support
+    kapt deps.dagger.android_support_compiler
+    kapt deps.dagger.compiler
+
+    implementation deps.kotlin.stdlib
+
+    implementation deps.glide.runtime
+    kapt deps.glide.compiler
+
+    implementation deps.rx.rxjava2
+    implementation deps.rx.rx_android
+
+    implementation deps.gms.maps
+
+    implementation deps.timber
+}
+
+apply plugin: 'kotlin-android-extensions'

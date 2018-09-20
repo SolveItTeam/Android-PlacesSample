@@ -1,0 +1,29 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    apply from: 'repositories.gradle'
+    apply from: 'deps.gradle'
+    addRepos(repositories)
+    dependencies {
+        classpath deps.android_gradle_plugin
+        classpath deps.kotlin.plugin
+    }
+}
+
+allprojects {
+    addRepos(repositories)
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+ext {
+    min_sdk = 16
+    target_sdk = 27
+    version_code = 1
+    version_name = "1.0"
+    application_id = "by.solveit.codingtest"
+}
+
+
