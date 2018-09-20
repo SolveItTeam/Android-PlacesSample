@@ -2,6 +2,7 @@ package by.solveit.codingtest.di
 
 import android.app.Application
 import by.solveit.codingtest.CodingTestApplication
+import by.solveit.codingtest.di.googleapi.GooglePlacesApiModule
 import dagger.BindsInstance
 import dagger.Component
 import dagger.android.AndroidInjector
@@ -13,6 +14,8 @@ import javax.inject.Singleton
         modules = [
             AndroidSupportInjectionModule::class,
             AppModule::class,
+            GooglePlacesApiModule::class,
+            CodingTestDatabaseModule::class,
             PlacesActivityModule::class
         ]
 )

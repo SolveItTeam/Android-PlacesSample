@@ -16,6 +16,7 @@ android {
         debug {
             def googleApiProperties = file("../credentials/debug_google_api.properties")
             manifestPlaceholders += ["GOOGLE_API_KEY": getCredential(googleApiProperties, "api_key")]
+            buildConfigField("String", "GOOGLE_API_KEY", "\"${getCredential(googleApiProperties, "api_key")}\"")
         }
         release {
             minifyEnabled false
@@ -49,7 +50,6 @@ dependencies {
     kapt deps.lifecycle.compiler
 
     implementation deps.room.runtime
-    implementation deps.room.rxjava2
     kapt deps.room.compiler
 
     implementation deps.retrofit.runtime
@@ -66,12 +66,9 @@ dependencies {
     implementation deps.kotlin.stdlib
 
     implementation deps.glide.runtime
-    kapt deps.glide.compiler
-
-    implementation deps.rx.rxjava2
-    implementation deps.rx.rx_android
 
     implementation deps.gms.maps
+    implementation deps.gms.location
 
     implementation deps.timber
 }

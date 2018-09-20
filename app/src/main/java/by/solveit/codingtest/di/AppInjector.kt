@@ -15,7 +15,10 @@ import dagger.android.support.HasSupportFragmentInjector
 
 object AppInjector {
     fun init(app: CodingTestApplication) : AndroidInjector<out DaggerApplication> {
-        val appComponent = DaggerAppComponent.builder().application(app).create(app)
+        val appComponent = DaggerAppComponent
+                .builder()
+                .application(app)
+                .create(app)
         app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                 handleActivity(activity)
