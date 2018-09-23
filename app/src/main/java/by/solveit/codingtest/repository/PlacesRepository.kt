@@ -1,6 +1,7 @@
 package by.solveit.codingtest.repository
 
 import android.arch.lifecycle.LiveData
+import android.graphics.Bitmap
 import by.solveit.codingtest.AppExecutors
 import by.solveit.codingtest.api.ApiResponse
 import by.solveit.codingtest.api.googleapi.places.GoogleNearbyPlacesApiResponse
@@ -16,7 +17,7 @@ class PlacesRepository @Inject constructor(private val service: GooglePlacesServ
                                            private val dao: PlaceDao,
                                            private val appExecutors: AppExecutors) {
 
-    fun getPlaces(lat: Double, lng: Double, radius: Int): LiveData<Resource<List<Place>>> =
+    fun getPlaces(lat: Double, lng: Double, radius: Int, type: String? = null): LiveData<Resource<List<Place>>> =
             object : NetworkBoundResource<List<Place>, GoogleNearbyPlacesApiResponse>(appExecutors) {
                 override fun saveCallResult(item: GoogleNearbyPlacesApiResponse) {
                     dao.insert(item.results.map { Place(it) })
@@ -24,13 +25,15 @@ class PlacesRepository @Inject constructor(private val service: GooglePlacesServ
 
                 override fun shouldFetch(data: List<Place>?) = true
 
-                //TODO: replace with getNearby
                 override fun loadFromDb(): LiveData<List<Place>> =
-                        dao.getAll()
+                        dao.getNearby(lat, lng, radius)
 
                 override fun createCall(): LiveData<ApiResponse<GoogleNearbyPlacesApiResponse>> =
-                        service.getNearby(lat, lng, radius)
+                        service.getNearby(lat, lng, radius, type)
 
             }.asLiveData()
+
+     fun getPhoto(reference: String, width: Int): LiveData<ApiResponse<Bitmap>> =
+             service.getPhoto(reference, width)
 
 }

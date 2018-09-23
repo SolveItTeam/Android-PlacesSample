@@ -9,7 +9,7 @@ import by.solveit.codingtest.vo.Place
         entities = [
             Place::class
         ],
-        version = 1,
+        version = 7,
         exportSchema = false
 )
 @TypeConverters(CodingTestTypeConverters::class)
