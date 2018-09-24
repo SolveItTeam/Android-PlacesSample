@@ -2,18 +2,19 @@ package by.solveit.codingtest.ui.places.map
 
 import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
+import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MediatorLiveData
 import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
 import android.graphics.Bitmap
 import android.location.Location
-import by.solveit.codingtest.api.ApiErrorResponse
-import by.solveit.codingtest.api.ApiResponse
-import by.solveit.codingtest.api.ApiSuccessResponse
 import by.solveit.codingtest.repository.CurrentLocationRepository
 import by.solveit.codingtest.repository.PlacesRepository
-import by.solveit.codingtest.vo.*
+import by.solveit.codingtest.vo.Event
+import by.solveit.codingtest.vo.Place
+import by.solveit.codingtest.vo.Resource
+import by.solveit.codingtest.vo.Status
 import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.maps.model.LatLng
 import javax.inject.Inject
 
 class PlacesMapViewModel @Inject constructor(
@@ -22,7 +23,8 @@ class PlacesMapViewModel @Inject constructor(
         private val currentLocationRepository: CurrentLocationRepository
 ) : AndroidViewModel(application) {
 
-    val mapPlaces = MediatorLiveData<List<GoogleMapPlace>>()
+    val imageMarkersToAdd = MediatorLiveData<List<ImageMarker>>()
+    val imageMarkersToRemove = MutableLiveData<List<ImageMarker>>()
     val loading = MutableLiveData<Boolean>().apply { value = false }
     val error = MutableLiveData<Event<String>>()
 
@@ -32,31 +34,31 @@ class PlacesMapViewModel @Inject constructor(
 
     fun update() {
         val currentLocation = currentLocationRepository.getCurrentLocation(LocationRequest.create())
-        mapPlaces.addSource(currentLocation) { location: Location? ->
+        imageMarkersToAdd.addSource(currentLocation) { location: Location? ->
             location?.let {
-                mapPlaces.removeSource(currentLocation)
+                imageMarkersToAdd.removeSource(currentLocation)
                 val places = placesRepository.getPlaces(
                         lat = it.latitude,
                         lng = it.longitude,
                         radius = 2000,
                         type = "bar"
                 )
-                mapPlaces.addSource(places) { resource: Resource<List<Place>>? ->
+                imageMarkersToAdd.addSource(places) { resource: Resource<List<Place>>? ->
                     resource?.let {
                         when (it.status) {
                             Status.SUCCESS -> {
                                 loading.value = false
-                                updatePlaces(it.data?.map { it.toGoogleMapPlace() })
-                                mapPlaces.removeSource(places)
+                                updatePlaces(it.data?.map { it.toImageMarker() })
+                                imageMarkersToAdd.removeSource(places)
                             }
                             Status.ERROR -> {
                                 loading.value = false
-                                mapPlaces.removeSource(places)
+                                imageMarkersToAdd.removeSource(places)
                                 error.value = Event(it.message ?: "")
                             }
                             Status.LOADING -> {
                                 loading.value = true
-                                updatePlaces(it.data?.map { it.toGoogleMapPlace() })
+                                updatePlaces(it.data?.map { it.toImageMarker() })
                             }
                         }
                     }
@@ -65,31 +67,42 @@ class PlacesMapViewModel @Inject constructor(
         }
     }
 
-    private fun updatePlaces(mapPlaces: List<GoogleMapPlace>?) {
-        this.mapPlaces.value?.let {
-            it.forEach { it.isActive = false }
-        }
-        this.mapPlaces.value = mapPlaces
+    private fun updatePlaces(newMapPlaces: List<ImageMarker>?) {
+        imageMarkersToRemove.value = imageMarkersToAdd.value
+        imageMarkersToAdd.value = newMapPlaces
     }
 
-    private fun Place.toGoogleMapPlace(): GoogleMapPlace {
-        val mapPlace = GoogleMapPlace(this)
-        photoReference?.let {
-            val photo = placesRepository.getPhoto(it, 200)
-            photo.observeForever(object : Observer<ApiResponse<Bitmap>> {
-                override fun onChanged(response: ApiResponse<Bitmap>?) {
-                    response?.let {
-                        photo.removeObserver(this)
-                        when (response) {
-                            is ApiErrorResponse<Bitmap> ->
-                                error.value = Event(response.errorMessage)
-                            is ApiSuccessResponse<Bitmap> ->
-                                mapPlace.icon = response.body
+    private fun Place.toImageMarker(): ImageMarker {
+        val image = object : MediatorLiveData<Bitmap>() {
+            init {
+                this@toImageMarker.photoReference?.let {
+                    val photoResource = placesRepository.getPhoto(it, 200)
+                    addSource(photoResource) { resource ->
+                        resource?.let {
+                            when (it.status) {
+                                Status.SUCCESS -> {
+                                    this.removeSource(photoResource)
+                                    value = resource.data
+                                }
+                                Status.ERROR -> {
+                                    this.removeSource(photoResource)
+                                    error.value = Event(it.message ?: "")
+                                    value = null
+                                }
+                                Status.LOADING -> {
+                                    value = null
+                                }
+                            }
                         }
                     }
                 }
-            })
+            }
         }
-        return mapPlace
+        val place = object : LiveData<LatLng>() {
+            init {
+                value = LatLng(this@toImageMarker.lat, this@toImageMarker.lng)
+            }
+        }
+        return RoundedImageMarker(image, place)
     }
 }

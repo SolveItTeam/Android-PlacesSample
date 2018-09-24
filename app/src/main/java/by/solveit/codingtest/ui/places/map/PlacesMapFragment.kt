@@ -15,9 +15,9 @@ import by.solveit.codingtest.di.ViewModelFactory
 import by.solveit.codingtest.di.injectViewModel
 import by.solveit.codingtest.util.isLocationPermissionGranted
 import by.solveit.codingtest.vo.Event
-import by.solveit.codingtest.vo.GoogleMapPlace
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
+import timber.log.Timber
 import javax.inject.Inject
 
 class PlacesMapFragment : SupportMapFragment(), Injectable {
@@ -45,14 +45,17 @@ class PlacesMapFragment : SupportMapFragment(), Injectable {
         super.onActivityCreated(savedInstanceState)
         viewModel = injectViewModel(viewModelFactory)
         getMapAsync { map -> onMapReady(map) }
-        viewModel.mapPlaces.observe(this, Observer { places ->
-            places?.let { onPlacesUpdated(it) }
-        })
         viewModel.error.observe(this, Observer { event ->
             event?.let { onError(it) }
         })
         viewModel.loading.observe(this, Observer { loading ->
             loading?.let { onLoading(it) }
+        })
+        viewModel.imageMarkersToRemove.observe(this, Observer { markers ->
+            markers?.let { onImageMarkersRemoved(it) }
+        })
+        viewModel.imageMarkersToAdd.observe(this, Observer { markers ->
+            markers?.let { onImageMarkersAdded(it) }
         })
     }
 
@@ -68,11 +71,25 @@ class PlacesMapFragment : SupportMapFragment(), Injectable {
         viewModel.mapReady()
     }
 
-    private fun onPlacesUpdated(places: List<GoogleMapPlace>) {
+    private fun onImageMarkersRemoved(imageMarkers: List<ImageMarker>) {
+        Timber.d("onImageMarkersRemoved")
         map?.apply {
-            clear()
-            places.forEach {
-                it.addOnMap(this)
+            imageMarkers.forEach {
+                if (it.addedOnMap) {
+                    it.removeFromMap()
+                }
+            }
+        }
+
+    }
+
+    private fun onImageMarkersAdded(imageMarkers: List<ImageMarker>) {
+        Timber.d("onImageMarkersAdded")
+        map?.apply {
+            imageMarkers.forEach {
+                if (!it.addedOnMap) {
+                    it.addOnMap(this)
+                }
             }
         }
     }

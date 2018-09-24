@@ -24,41 +24,39 @@ abstract class PlaceDao {
      */
     fun getNearby(requiredLat: Double,
                   requiredLng: Double,
-                  radius: Int) = getNearby(
+                  radius: Int,
+                  limit: Int) = getNearby(
             requiredSinLat = sin(Math.toRadians(requiredLat)),
             requiredCosLat = cos(Math.toRadians(requiredLat)),
             requiredSinLng = sin(Math.toRadians(requiredLng)),
             requiredCosLng = cos(Math.toRadians(requiredLng)),
-            requiredDistanceFactor = cos(radius / EARTH_RADIUS_M)
+            requiredDistanceFactor = cos(radius / EARTH_RADIUS_M),
+            limit = limit
     )
 
     /**
      * SQLite doesn't support any trigonometric functions by default
      */
     @Query("""
-        SELECT  id,
-                name,
-                icon,
-                photo_reference,
-                lat,
-                lng,
-                sinLat,
-                cosLat,
-                sinLng,
-                cosLng
-        FROM place
-        WHERE sinLat * :requiredSinLat + cosLat * :requiredCosLat * (sinLng * :requiredSinLng + cosLng * :requiredCosLng) > :requiredDistanceFactor
-        ORDER BY sinLat * :requiredSinLat + cosLat * :requiredCosLat * (sinLng * :requiredSinLng + cosLng * :requiredCosLng) DESC
-        LIMIT 20
+        SELECT  id, name, icon, photo_reference, lat, lng,
+                sinLat, cosLat, sinLng, cosLng
+        FROM   (SELECT  * ,
+                        (
+                            sinLat * :requiredSinLat +
+                            cosLat * :requiredCosLat *
+                            (sinLng * :requiredSinLng + cosLng * :requiredCosLng)
+                        ) as distance_factor
+                FROM place)
+        WHERE distance_factor > :requiredDistanceFactor
+        ORDER BY distance_factor DESC
+        LIMIT :limit
     """)
-    protected abstract fun getNearby(requiredSinLat: Double,
-                                     requiredCosLat: Double,
-                                     requiredSinLng: Double,
-                                     requiredCosLng: Double,
-                                     requiredDistanceFactor: Double): LiveData<List<Place>>
-
-    @Query("SELECT * FROM place")
-    abstract fun getAll(): LiveData<List<Place>>
-
-
+    protected abstract fun getNearby(
+            requiredSinLat: Double,
+            requiredCosLat: Double,
+            requiredSinLng: Double,
+            requiredCosLng: Double,
+            requiredDistanceFactor: Double,
+            limit: Int
+    ): LiveData<List<Place>>
 }
